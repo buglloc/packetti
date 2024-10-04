@@ -1,7 +1,7 @@
 # Maintainer: Andrew Krasichkov <dev@buglloc.cc>
 
 pkgname=packetti
-pkgver=1.0.0
+pkgver=0.0.1
 pkgrel=1
 pkgdesc="The extcap application to integrate Packetti with Wireshark or something"
 arch=("x86_64")
@@ -9,20 +9,19 @@ url="https://github.com/buglloc/packetti/software"
 license=("MIT")
 depends=("glibc")
 makedepends=(
-  "git"
   "go"
 )
 options=("!lto")
-source=("git+https://github.com/buglloc/packetti.git#bc1139bcf85997ceba4d18d2c31638d6b00d9ba9")
-sha256sums=('9cc2c36fba118f30f56484b57f974829a5562256b2aefd98d4ae243239aa3be1')
+source=("https://github.com/buglloc/packetti/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('7e6c696c2ad0435f42800ac0dd5197c0a9035bf27a49cdfcd6fff2b1a50b678a')
 
 prepare() {
-  cd "$pkgname/software"
+  cd "$pkgname-$pkgver/software"
   GOFLAGS="-mod=readonly" go mod vendor -v
 }
 
 build() {
-  cd "$pkgname/software"
+  cd "$pkgname-$pkgver/software"
   export CGO_LDFLAGS="$LDFLAGS"
   export CGO_CFLAGS="$CFLAGS"
   export CGO_CXXFLAGS="$CXXFLAGS"
@@ -33,6 +32,6 @@ build() {
 }
 
 package() {
-  cd "$pkgname/software"
-  install -vDdm755 -t "$pkgdir/usr/lib/wireshark/extcap" packetticap
+  cd "$pkgname-$pkgver/software"
+  install -vDm755 -t "$pkgdir/usr/lib/wireshark/extcap" packetticap
 }
