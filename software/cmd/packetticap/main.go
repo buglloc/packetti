@@ -17,12 +17,12 @@ import (
 
 func main() {
 	app := extcap.App{
-		Usage: "piratcap",
+		Usage: "packetticap",
 		Version: extcap.VersionInfo{
 			Info: "1.0.0",
-			Help: "https://github.com/buglloc/PiRAT",
+			Help: "https://github.com/buglloc/packetti",
 		},
-		HelpPage:      "PiRATCap - extcap application to integrate PiRAT with Wireshark or something",
+		HelpPage:      "PackettiCap - extcap application to integrate Packetti with Wireshark or something",
 		GetInterfaces: getAllInterfaces,
 		GetDLT:        getDLT,
 		StartCapture:  startCapture,
@@ -39,7 +39,7 @@ func getAllInterfaces() ([]extcap.CaptureInterface, error) {
 
 	extIfaces := make([]extcap.CaptureInterface, len(ifaces))
 	for i, iface := range ifaces {
-		// we use Name as Value to deal with PiRAt replugs
+		// we use Name as Value to deal with packetti replugs
 		extIfaces[i] = extcap.CaptureInterface{
 			Value:   iface.Name,
 			Display: iface.Path,
@@ -61,7 +61,7 @@ func startCapture(iface string, pipe io.WriteCloser, _ string, _ map[string]inte
 
 	r, err := packetti.NewDeviceByName(iface)
 	if err != nil {
-		return fmt.Errorf("open PiRAT reader: %w", err)
+		return fmt.Errorf("open packetti reader: %w", err)
 	}
 	defer func() { _ = r.Close() }()
 
@@ -78,7 +78,7 @@ func startCapture(iface string, pipe io.WriteCloser, _ string, _ map[string]inte
 			SectionInfo: pcapgo.NgSectionInfo{
 				Hardware:    runtime.GOARCH,
 				OS:          runtime.GOOS,
-				Application: "PiRAT", //spread the word
+				Application: "Packetti", //spread the word
 			},
 		},
 	)
