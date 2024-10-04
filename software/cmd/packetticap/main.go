@@ -85,7 +85,6 @@ func startCapture(iface string, pipe io.WriteCloser, _ string, _ map[string]inte
 	if err != nil {
 		return fmt.Errorf("open pcapng writer: %w", err)
 	}
-	defer func() { _ = w.Flush() }()
 
 	for {
 		packet, err := r.Packet()
@@ -101,6 +100,11 @@ func startCapture(iface string, pipe io.WriteCloser, _ string, _ map[string]inte
 		err = w.WritePacket(ci, packet)
 		if err != nil {
 			return fmt.Errorf("write packet: %w", err)
+		}
+
+		err = w.Flush()
+		if err != nil {
+			return fmt.Errorf("flush packet: %w", err)
 		}
 	}
 }
