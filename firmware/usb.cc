@@ -163,9 +163,11 @@ pico_error_codes USB::Initialize(uint32_t dpPin)
   return PICO_OK;
 }
 
-bool USB::NextPacket(std::basic_string<uint8_t>& out)
+bool USB::NextPacket(bool packetFolding, std::basic_string<uint8_t>& out)
 {
   static PacketPos packet = {};
+  static uint8_t lastPid = 0x00;
+
   if (!queue_try_remove(&queue_, &packet)) {
     return false;
   }
@@ -173,22 +175,35 @@ bool USB::NextPacket(std::basic_string<uint8_t>& out)
   uint8_t firstByte = captureBuf_[packet.Start] >> 24;
   if (firstByte != kUSBSync || packet.Len < 3) {
     // skips invalid packets
-    return USB::NextPacket(out);
+    return USB::NextPacket(packetFolding, out);
   }
 
   uint8_t secondByte = captureBuf_[(packet.Start + 1) % kCaptureBufLen] >> 24;
   if (((~(secondByte >> 4)) & 0xF) != (secondByte & 0xF)) {
     // Skip invalid packet which has a broken PID byte (First 4 bits are not bit-inversion of the rest)
-    return USB::NextPacket(out);
+    return USB::NextPacket(packetFolding, out);
   }
 
-  // TODO(buglloc): allow to configure me plz
-  switch (secondByte & 0xF) {
-    case kUSBPidAck:
-      [[fallthrough]];
-    case kUSBPidSof:
-      return USB::NextPacket(out);
+  uint8_t curPid = secondByte & 0xF;
+  if (packetFolding) {
+    if (curPid == kUSBPidSof) {
+      return USB::NextPacket(packetFolding, out);
+    }
+
+    if (curPid == lastPid) {
+      switch (curPid) {
+      case kUSBPidOut:
+        [[fallthrough]];
+      case kUSBPidIn:
+        [[fallthrough]];
+      case kUSBPidAck:
+        [[fallthrough]];
+      case kUSBPidNak:
+        return USB::NextPacket(packetFolding, out);
+      }
+    }
   }
+  lastPid = curPid;
 
   out.clear();
   for (size_t i = 1; i < packet.Len; ++i) {

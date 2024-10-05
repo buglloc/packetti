@@ -13,5 +13,5 @@
 namespace Packetti::USB
 {
   pico_error_codes Initialize(uint32_t dpPin);
-  bool NextPacket(std::basic_string<uint8_t>& out);
+  bool NextPacket(bool packetFolding, std::basic_string<uint8_t>& out);
 }

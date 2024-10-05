@@ -59,6 +59,29 @@ func readSlipPacket(r io.Reader) ([]byte, error) {
 			}
 		}
 
-		buf.WriteByte(readBuf[0])
+		_ = buf.WriteByte(readBuf[0])
 	}
+}
+
+func writeSlipPacket(w io.Writer, packet []byte) error {
+	buf := &bytes.Buffer{}
+
+	for _, c := range packet {
+		switch c {
+		case slipEnd:
+			_ = buf.WriteByte(slipEsc)
+			_ = buf.WriteByte(slipEscEnd)
+
+		case slipEsc:
+			_ = buf.WriteByte(slipEsc)
+			_ = buf.WriteByte(slipEscEsc)
+
+		default:
+			_ = buf.WriteByte(c)
+		}
+	}
+
+	buf.WriteByte(slipEnd)
+	_, err := w.Write(buf.Bytes())
+	return err
 }

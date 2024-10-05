@@ -15,6 +15,15 @@ import (
 	"github.com/buglloc/packetti/software/pkg/packetti"
 )
 
+const (
+	usePacketFoldingOpt = "packet-folding"
+)
+
+var (
+	usePacketFolding = extcap.NewConfigBoolOpt(usePacketFoldingOpt, "Use packet folding").
+		Default(true)
+)
+
 func main() {
 	app := extcap.App{
 		Usage: "packetticap",
@@ -22,10 +31,12 @@ func main() {
 			Info: "1.0.0",
 			Help: "https://github.com/buglloc/packetti",
 		},
-		HelpPage:      "PackettiCap - extcap application to integrate Packetti with Wireshark or something",
-		GetInterfaces: getAllInterfaces,
-		GetDLT:        getDLT,
-		StartCapture:  startCapture,
+		HelpPage:            "PackettiCap - extcap application to integrate Packetti with Wireshark or something",
+		GetInterfaces:       getAllInterfaces,
+		GetDLT:              getDLT,
+		GetAllConfigOptions: getAllConfigOptions,
+		GetConfigOptions:    getConfigOptions,
+		StartCapture:        startCapture,
 	}
 
 	app.Run(os.Args)
@@ -56,14 +67,41 @@ func getDLT(_ string) (extcap.DLT, error) {
 	}, nil
 }
 
-func startCapture(iface string, pipe io.WriteCloser, _ string, _ map[string]interface{}) error {
+func getConfigOptions(_ string) ([]extcap.ConfigOption, error) {
+	opts := []extcap.ConfigOption{
+		usePacketFolding,
+	}
+
+	return opts, nil
+}
+
+func getAllConfigOptions() []extcap.ConfigOption {
+	opts := []extcap.ConfigOption{
+		usePacketFolding,
+	}
+	return opts
+}
+
+func startCapture(iface string, pipe io.WriteCloser, _ string, opts map[string]any) error {
 	defer func() { _ = pipe.Close() }()
 
-	r, err := packetti.NewDeviceByName(iface)
+	dev, err := packetti.NewDeviceByName(iface)
 	if err != nil {
-		return fmt.Errorf("open packetti reader: %w", err)
+		return fmt.Errorf("open packetti device: %w", err)
 	}
-	defer func() { _ = r.Close() }()
+	defer func() { _ = dev.Close() }()
+
+	packetFoldingEnabled := true
+	if val, ok := opts[usePacketFoldingOpt]; ok {
+		if en, ok := val.(bool); ok {
+			packetFoldingEnabled = en
+		}
+	}
+
+	if err := dev.StartCapture(packetFoldingEnabled); err != nil {
+		return fmt.Errorf("start packetti capture: %w", err)
+	}
+	defer func() { _ = dev.StopCapture() }()
 
 	w, err := pcapgo.NewNgWriterInterface(
 		pipe,
@@ -87,7 +125,7 @@ func startCapture(iface string, pipe io.WriteCloser, _ string, _ map[string]inte
 	}
 
 	for {
-		packet, err := r.Packet()
+		packet, err := dev.Packet()
 		if err != nil {
 			return fmt.Errorf("read packet: %w", err)
 		}
