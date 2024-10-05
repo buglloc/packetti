@@ -42,7 +42,7 @@ bool Slip::Stdin::Read(std::basic_string<uint8_t>& out)
 
 void Slip::Stdin::Consume()
 {
-  if (this->hasFrame_ = true) {
+  if (this->hasFrame_ == true) {
     this->hasFrame_ = false;
     this->readBuf_.clear();
   }
